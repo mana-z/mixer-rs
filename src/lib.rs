@@ -1,82 +1,13 @@
+pub mod audiosample;
+pub mod io;
+use audiosample::AudioSample;
+use io::*;
 
-pub trait AudioSample : Copy {
-    fn audio_add(&self, other: Self) -> Self;
-    fn audio_scale(&self, scale: f32) -> Self;
-    fn audio_default() -> Self;
-}
-
-impl AudioSample for f32
-{
-    fn audio_add(&self, other: Self) -> Self {
-        self * other
-    }
-
-    fn audio_scale(&self, scale: f32) -> Self {
-        self * scale
-    }
-    fn audio_default() -> Self {
-        0.0f32
-    }
-}
-
-impl AudioSample for u8
-{
-    fn audio_add(&self, other: Self) -> Self {
-        if other < 128u8 {
-            self.saturating_sub(128u8 - other)
-        } else {
-            self.saturating_add(other - 128u8)
-        }
-    }
-
-    fn audio_scale(&self, scale: f32) -> Self {
-        let val = (*self as f32 - 128f32) * scale;
-        if val < -128f32 {
-            0
-        } else if val > 127f32 {
-            255
-        } else {
-            (val + 128f32) as Self
-        }
-    }
-    fn audio_default() -> Self {
-        128u8
-    }
-}
-pub trait SoundEntity {
-    fn set_samplerate(&mut self, rate: u32);
-    fn samplerate(&self) -> u32;
-}
-
-pub trait SoundSource<T: AudioSample> : SoundEntity {
-    fn get_out_channel_count(&self) -> usize;
-
-    fn load_into(&mut self, result: &mut [T]);
-    fn get(&mut self, frame_size: usize) -> Vec<T> {
-        let mut result = Vec::with_capacity(frame_size);
-        for _ in 0..frame_size {
-            result.push(T::audio_default());
-        }
-        self.load_into(&mut result);
-        result
-    }
-
-}
-
-pub trait SoundSink<T: AudioSample> : SoundEntity {
-    fn get_in_channel_count(&self) -> usize;
-    fn put(&mut self, data: &[T]);
-}
-
-pub trait SoundPassthrough<T>
-where
-    T: AudioSample {
-    fn pass(&mut self, input: &[T]) -> Vec<T>;
-}
-
+#[derive(Default)]
 pub struct EffectStack<T: AudioSample> {
     pub effects : Vec<Box<dyn SoundPassthrough<T>>>
 }
+
 
 
 impl<T: AudioSample> SoundPassthrough<T> for EffectStack<T> {
@@ -103,6 +34,15 @@ pub struct Track<T: AudioSample>
     pub effects: EffectStack<T>,
     pub volume: f32,
     //pub pan: Vec<f32>,
+}
+impl<T: AudioSample> Track<T> {
+    pub fn new(source: Box<dyn SoundSource<T>>, volume: f32) -> Self {
+        Track {
+            source : source,
+            effects: Default::default(),
+            volume: volume
+        }
+    }
 }
 impl<T: AudioSample> SoundEntity for Track<T>
 {
@@ -136,7 +76,7 @@ impl<T: AudioSample> SoundSource<T> for Track<T>
 pub struct Mixer<T: AudioSample, S: SoundSink<T>>
 {
     pub tracks: Vec<Track<T>>,
-    pub sink : S
+    pub sink : S,
 }
 
 impl<T: AudioSample, S: SoundSink<T>> Mixer<T, S>
@@ -157,42 +97,77 @@ impl<T: AudioSample, S: SoundSink<T>> Mixer<T, S>
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    struct Copier{}
+    struct Gain {
+        g: f32,
+    }
 
-    impl SoundEntity for Copier {
+    impl<T: AudioSample> SoundPassthrough<T> for Gain {
+        fn pass(&mut self, input: &[T]) -> Vec<T> {
+            let mut result = Vec::with_capacity(input.len());
+            for i in input {
+                result.push(i.audio_scale(self.g));
+            }
+            result
+        }
+    }
+    #[test]
+    fn effect_stack() {
+        let mut e = EffectStack{ effects: Vec::new() };
+        let newgain = || Box::new(Gain{g: 2f32});
+        e.effects.push(newgain());
+        e.effects.push(newgain());
+        assert_eq!(vec!(132u8, 136u8), e.pass(&[129u8, 130u8]));
+        assert_eq!(vec!(124u8, 120u8), e.pass(&[127u8, 126u8]));
+    }
+
+    struct ImpulseEachFrame<T: AudioSample> {
+        one: T,
+        nul: T
+    }
+    impl<T: AudioSample> ImpulseEachFrame<T> {
+        fn new(one: T, nul: T) -> Self {
+            ImpulseEachFrame { one: one, nul: nul }
+        }
+    }
+    impl<T: AudioSample> SoundEntity for ImpulseEachFrame<T> {
+        // dummy as is irrelevant for tests
         fn set_samplerate(&mut self, _: u32) {}
         fn samplerate(&self) -> u32 {0}
     }
 
-    impl<T: AudioSample> SoundPassthrough<T> for Copier {
-        fn pass(&mut self, input: &[T]) -> Vec<T> {
-            Vec::from(input)
+    impl<T: AudioSample> SoundSource<T> for ImpulseEachFrame<T> {
+        fn get_out_channel_count(&self) -> usize {1}
+
+        fn load_into(&mut self, result: &mut [T]) {
+            if result.len() == 0 {
+                return;
+            }
+            result[0] = self.one;
+            for i in 1..result.len() {
+                result[i] = self.nul
+            }
         }
     }
 
     #[test]
-    fn passtrough() {
-        let mut dummy = Copier{};
-        let vec1 : Vec<u8> = vec!{1, 2, 3};
-        let vec2 : Vec<u8> = dummy.pass(&vec1);
-        assert_eq!(vec1, vec2);
+    fn track() {
+        let mut t = Track::new(
+            Box::new(ImpulseEachFrame::new(129u8, 128u8)),
+            1f32);
 
+        {
+            let ref mut e = t.effects.effects;
+            let newgain = || Box::new(Gain{g: 2f32});
+            e.push(newgain());
+            e.push(newgain());
+        }
+        assert_eq!(vec!(132u8, 128u8, 128u8), t.get(3));
     }
 
-    #[test]
-    fn audio_add() {
-        assert_eq!(128u8.audio_add(128u8), 128u8);
-        assert_eq!(0u8.audio_add(255u8), 127u8);
-    }
-    #[test]
-    fn audio_scale() {
-        assert!(129u8.audio_scale(4.0f32) >= 130u8);
-        assert!(129u8.audio_scale(4.0f32) <= 132u8);
-    }
+    //TODO mixer tests
 }
+
+
