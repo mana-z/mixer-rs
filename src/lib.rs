@@ -106,32 +106,22 @@ mod tests {
 
     impl<T: AudioSample> SoundPassthrough<T> for Gain {
         fn pass(&mut self, input: &[T]) -> Vec<T> {
-            let mut result = Vec::with_capacity(input.len());
-            for i in input {
-                result.push(i.audio_scale(self.g));
-            }
-            result
+            input.iter().map(|i| i.audio_scale(self.g)).collect()
         }
     }
-    #[test]
-    fn effect_stack() {
-        let mut e = EffectStack{ effects: Vec::new() };
-        let newgain = || Box::new(Gain{g: 2f32});
-        e.effects.push(newgain());
-        e.effects.push(newgain());
-        assert_eq!(vec!(132u8, 136u8), e.pass(&[129u8, 130u8]));
-        assert_eq!(vec!(124u8, 120u8), e.pass(&[127u8, 126u8]));
-    }
+
 
     struct ImpulseEachFrame<T: AudioSample> {
         one: T,
         nul: T
     }
+
     impl<T: AudioSample> ImpulseEachFrame<T> {
         fn new(one: T, nul: T) -> Self {
             ImpulseEachFrame { one: one, nul: nul }
         }
     }
+
     impl<T: AudioSample> SoundEntity for ImpulseEachFrame<T> {
         // dummy as is irrelevant for tests
         fn set_samplerate(&mut self, _: u32) {}
@@ -142,15 +132,26 @@ mod tests {
         fn get_out_channel_count(&self) -> usize {1}
 
         fn load_into(&mut self, result: &mut [T]) {
-            if result.len() == 0 {
-                return;
-            }
+            if result.len() == 0 { return; }
             result[0] = self.one;
             for i in 1..result.len() {
                 result[i] = self.nul
             }
         }
     }
+
+
+
+    #[test]
+    fn effect_stack() {
+        let mut e = EffectStack{ effects: Vec::new() };
+        let newgain = || Box::new(Gain{g: 2f32});
+        e.effects.push(newgain());
+        e.effects.push(newgain());
+        assert_eq!(vec!(132u8, 136u8), e.pass(&[129u8, 130u8]));
+        assert_eq!(vec!(124u8, 120u8), e.pass(&[127u8, 126u8]));
+    }
+
 
     #[test]
     fn track() {
