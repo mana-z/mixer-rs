@@ -9,11 +9,12 @@ pub trait SoundSource<T: AudioSample> : SoundEntity {
     fn get_out_channel_count(&self) -> usize;
 
     fn load_into(&mut self, result: &mut [T]);
+
     fn get(&mut self, frame_size: usize) -> Vec<T> {
-        let mut result = Vec::with_capacity(frame_size);
-        for _ in 0..frame_size {
-            result.push(T::audio_default());
-        }
+        let mut result : Vec<T> = std::iter::repeat(Default::default())
+            .take(frame_size)
+            .collect();
+
         self.load_into(&mut result);
         result
     }
