@@ -3,6 +3,10 @@ pub mod io;
 use audiosample::AudioSample;
 use io::*;
 
+/// Effects Stack
+///
+/// Contains a dynamic cascade of "effects", trait objects able to pass through. Also able to pass
+/// through as well for traversing through the cascade
 #[derive(Default)]
 pub struct EffectStack<T: AudioSample> {
     pub effects : Vec<Box<dyn SoundPassthrough<T>>>
@@ -13,9 +17,9 @@ impl<T: AudioSample> SoundPassthrough<T> for EffectStack<T> {
     fn pass(&mut self, input: &[T]) -> Vec<T> {
         let len = self.effects.len();
         match len {
-            0 => Vec::from(input),
-            1 => self.effects[0].pass(input),
-            _ => {
+            0 => Vec::from(input), // no effects - direct transfer
+            1 => self.effects[0].pass(input), // a single effect, pass and return
+            _ => { // multiple effects - traverse using a buffer pair
                 let mut buf = self.effects[0].pass(input);
                 for i in 1..len {
                     let mut buf2 = self.effects[i].pass(&buf);
@@ -29,6 +33,10 @@ impl<T: AudioSample> SoundPassthrough<T> for EffectStack<T> {
 }
 
 
+/// Track
+///
+/// Contains a source trait object, an effects stack and controls for adjusting.
+/// Works as sound source as well
 pub struct Track<T: AudioSample>
 {
     pub source: Box<dyn SoundSource<T>>,
@@ -78,6 +86,9 @@ impl<T: AudioSample> SoundSource<T> for Track<T>
 }
 
 
+/// Mixer
+///
+/// A collection of tracks collected into a single sink
 pub struct Mixer<T: AudioSample, S: SoundSink<T>>
 {
     pub tracks: Vec<Track<T>>,
