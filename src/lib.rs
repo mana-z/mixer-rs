@@ -103,6 +103,7 @@ impl<T: AudioSample, S: SoundSink<T>> Mixer<T, S>
 
     pub fn do_frame(&mut self, size: usize)
     {
+        // FIXME a load_into with one mutable buffer instead of get should be much more effective
         let mut result : Vec<T> = std::iter::repeat(T::audio_default())
                                    .take(size)
                                    .collect();

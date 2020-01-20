@@ -4,7 +4,6 @@ use super::audiosample::AudioSample;
 ///
 /// This contains samplerate getters/setters, as many apps may want to test it always, even if it is
 /// not applicable for the entity itself
-/// Note: Ther
 pub trait SoundEntity {
     fn set_samplerate(&mut self, rate: u32);
     fn samplerate(&self) -> Option<u32>;
@@ -18,11 +17,21 @@ macro_rules! no_samplerate {
     }
 }
 
+/// A source of sound of X channels
+///
+/// A trait which should be implemented by sources, e.g. input, synths, ...
 pub trait SoundSource<T: AudioSample> : SoundEntity {
+    /// Get number of output channels
+    ///
+    /// How are the channels represented in outputs is user-defined
     fn get_out_channel_count(&self) -> usize;
 
+    /// Load source data into a container
+    ///
+    /// This may provide superior performance over `get` as it does not have to allocate anything
     fn load_into(&mut self, result: &mut [T]);
 
+    /// Allocate a vector and load new data into it
     fn get(&mut self, frame_size: usize) -> Vec<T> {
         let mut result : Vec<T> = std::iter::repeat(Default::default())
             .take(frame_size)
