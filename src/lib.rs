@@ -5,8 +5,8 @@ use io::*;
 
 /// Effects Stack
 ///
-/// Contains a dynamic cascade of "effects", trait objects able to pass through. Also able to pass
-/// through as well for traversing through the cascade
+/// Contains a dynamic cascade of "effects", trait objects able to pass through. Also implements
+/// pass through as well for easy traversing through the cascade
 #[derive(Default)]
 pub struct EffectStack<T: AudioSample> {
     pub effects : Vec<Box<dyn SoundPassthrough<T>>>
@@ -60,7 +60,7 @@ impl<T: AudioSample> SoundEntity for Track<T>
     fn set_samplerate(&mut self, rate: u32) {
         self.source.set_samplerate(rate);
     }
-    fn samplerate(&self) -> u32 {
+    fn samplerate(&self) -> Option<u32> {
         self.source.samplerate()
     }
 

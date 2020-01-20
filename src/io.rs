@@ -1,8 +1,13 @@
 use super::audiosample::AudioSample;
 
+/// A base interface for sinks/entities/passtroughs
+///
+/// This contains samplerate getters/setters, as many apps may want to test it always, even if it is
+/// not applicable for the entity itself
+/// Note: Ther
 pub trait SoundEntity {
     fn set_samplerate(&mut self, rate: u32);
-    fn samplerate(&self) -> u32;
+    fn samplerate(&self) -> Option<u32>;
 }
 
 pub trait SoundSource<T: AudioSample> : SoundEntity {
@@ -35,12 +40,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     struct Copier{}
 
     impl SoundEntity for Copier {
         fn set_samplerate(&mut self, _: u32) {}
-        fn samplerate(&self) -> u32 {0}
+        fn samplerate(&self) -> Option<u32> {None}
     }
 
     impl<T: AudioSample> SoundPassthrough<T> for Copier {

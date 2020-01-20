@@ -1,9 +1,15 @@
+
+/// AudioSample
+///
+/// A trait for representing an audio sample, with defined math methods reflecting how PCM is
+/// stored, e.g. 129u8 + 129u8 = 130u8
 pub trait AudioSample : Copy + Default {
     fn audio_add(&self, other: Self) -> Self;
     fn audio_scale(&self, scale: f32) -> Self;
     fn audio_default() -> Self;
 }
 
+/// This just maps audio ops to conventional ops, as they are the same for floats
 impl AudioSample for f32
 {
     fn audio_add(&self, other: Self) -> Self {
@@ -18,6 +24,7 @@ impl AudioSample for f32
     }
 }
 
+/// This maps to an 8bit PCM representation, eg. 128u8 is zero magnitude
 impl AudioSample for u8
 {
     fn audio_add(&self, other: Self) -> Self {
@@ -45,11 +52,12 @@ impl AudioSample for u8
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
 
     #[test]
     fn audio_add() {
         assert_eq!(128u8.audio_add(128u8), 128u8);
+        assert_eq!(127u8.audio_add(127u8), 126u8);
         assert_eq!(0u8.audio_add(255u8), 127u8);
     }
     #[test]
