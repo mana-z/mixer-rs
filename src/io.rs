@@ -5,6 +5,14 @@ pub trait SoundEntity {
     fn samplerate(&self) -> u32;
 }
 
+#[macro_export]
+macro_rules! no_samplerate {
+    () => {
+        fn set_samplerate(&mut self, _: u32) {}
+        fn samplerate(&self) -> u32 {0}
+    }
+}
+
 pub trait SoundSource<T: AudioSample> : SoundEntity {
     fn get_out_channel_count(&self) -> usize;
 
@@ -37,11 +45,7 @@ mod tests {
     use super::*;
     
     struct Copier{}
-
-    impl SoundEntity for Copier {
-        fn set_samplerate(&mut self, _: u32) {}
-        fn samplerate(&self) -> u32 {0}
-    }
+    impl SoundEntity for Copier { no_samplerate!(); }
 
     impl<T: AudioSample> SoundPassthrough<T> for Copier {
         fn pass(&mut self, input: &[T]) -> Vec<T> {
