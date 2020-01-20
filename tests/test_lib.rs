@@ -28,8 +28,7 @@ impl<T: AudioSample> ImpulseEachFrame<T> {
 
 impl<T: AudioSample> SoundEntity for ImpulseEachFrame<T> {
     // dummy as is irrelevant for tests
-    fn set_samplerate(&mut self, _: u32) {}
-    fn samplerate(&self) -> u32 {0}
+    no_samplerate!();
 }
 
 impl<T: AudioSample> SoundSource<T> for ImpulseEachFrame<T> {
@@ -57,8 +56,7 @@ impl<T: AudioSample> Buffer<T> {
 
 impl<T: AudioSample> SoundEntity for Buffer<T> {
     // dummy as is irrelevant for tests
-    fn set_samplerate(&mut self, _: u32) {}
-    fn samplerate(&self) -> u32 {0}
+    no_samplerate!();
 }
 
 impl<T: AudioSample> SoundSink<T> for Buffer<T> {
