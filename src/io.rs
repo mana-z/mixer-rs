@@ -62,12 +62,12 @@ pub trait SoundSink<T: AudioSample> : SoundEntity {
 /// A trait which should be implemented by an intermediate sound element, e.g. sound effect, filter,
 /// ...
 /// Inputs and outputs are to be considered of a same length
-
 pub trait SoundPassthrough<T>
 where T: AudioSample {
     /// pass sound data through the element and get the result
     fn pass(&mut self, input: &[T], output: &mut [T]);
 
+    /// Allocate a vector and pass data into it
     fn get(&mut self, input: &[T]) -> Vec<T> {
         let mut result : Vec<T> = repeat(T::audio_default())
             .take(input.len())
