@@ -1,4 +1,5 @@
 use super::audiosample::AudioSample;
+use std::iter::repeat;
 
 /// A base interface for sinks/entities/passtroughs
 ///
@@ -21,19 +22,19 @@ macro_rules! no_samplerate {
 ///
 /// A trait which should be implemented by sources, e.g. input, synths, ...
 pub trait SoundSource<T: AudioSample> : SoundEntity {
-    /// Get number of output channels
+    /// Get number of emmiting channels channels
     ///
-    /// How are the channels represented in outputs is user-defined
+    /// How are the channels represented in input is user-defined
     fn get_out_channel_count(&self) -> usize;
 
     /// Load source data into a container
     ///
-    /// This may provide superior performance over `get` as it does not have to allocate anything
+    /// This will provide better performance over `get` as it saves an allocation
     fn load_into(&mut self, result: &mut [T]);
 
     /// Allocate a vector and load new data into it
     fn get(&mut self, frame_size: usize) -> Vec<T> {
-        let mut result : Vec<T> = std::iter::repeat(Default::default())
+        let mut result : Vec<T> = repeat(T::audio_default())
             .take(frame_size)
             .collect();
 
@@ -43,15 +44,37 @@ pub trait SoundSource<T: AudioSample> : SoundEntity {
 
 }
 
+/// A sink of sound of X channels
+///
+/// A trait which should be implemented by output endpoints, e.g. outputs, file writers...
 pub trait SoundSink<T: AudioSample> : SoundEntity {
+    /// Get number of consuming channels
+    ///
+    /// How should channels be represented in output is user-defined
     fn get_in_channel_count(&self) -> usize;
+
+    /// Put data into the sink
     fn put(&mut self, data: &[T]);
 }
 
+/// A pass-through sound element
+///
+/// A trait which should be implemented by an intermediate sound element, e.g. sound effect, filter,
+/// ...
+/// Inputs and outputs are to be considered of a same length
+
 pub trait SoundPassthrough<T>
-where
-    T: AudioSample {
-    fn pass(&mut self, input: &[T]) -> Vec<T>;
+where T: AudioSample {
+    /// pass sound data through the element and get the result
+    fn pass(&mut self, input: &[T], output: &mut [T]);
+
+    fn get(&mut self, input: &[T]) -> Vec<T> {
+        let mut result : Vec<T> = repeat(T::audio_default())
+            .take(input.len())
+            .collect();
+        self.pass(input, &mut result);
+        result
+    }
 }
 
 #[cfg(test)]
@@ -62,8 +85,8 @@ mod tests {
     impl SoundEntity for Copier { no_samplerate!(); }
 
     impl<T: AudioSample> SoundPassthrough<T> for Copier {
-        fn pass(&mut self, input: &[T]) -> Vec<T> {
-            Vec::from(input)
+        fn pass(&mut self, input: &[T], output: &mut [T]) {
+            output.copy_from_slice(input);
         }
     }
 
@@ -71,7 +94,7 @@ mod tests {
     fn passtrough() {
         let mut dummy = Copier{};
         let vec1 : Vec<u8> = vec!{1, 2, 3};
-        let vec2 : Vec<u8> = dummy.pass(&vec1);
+        let vec2 : Vec<u8> = dummy.get(&vec1);
         assert_eq!(vec1, vec2);
 
     }

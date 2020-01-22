@@ -9,8 +9,10 @@ struct Gain {
 }
 
 impl<T: AudioSample> SoundPassthrough<T> for Gain {
-    fn pass(&mut self, input: &[T]) -> Vec<T> {
-        input.iter().map(|i| i.audio_scale(self.g)).collect()
+    fn pass(&mut self, input: &[T], output: &mut [T]) {
+        for i in 0..input.len() {
+            output[i] = input[i].audio_scale(self.g);
+        }
     }
 }
 
@@ -69,12 +71,12 @@ impl<T: AudioSample> SoundSink<T> for Buffer<T> {
 
 #[test]
 fn effect_stack() {
-    let mut e = EffectStack{ effects: Vec::new() };
+    let mut e = EffectStack::new();
     let newgain = || Box::new(Gain{g: 2f32});
     e.effects.push(newgain());
     e.effects.push(newgain());
-    assert_eq!(vec!(132u8, 136u8), e.pass(&[129u8, 130u8]));
-    assert_eq!(vec!(124u8, 120u8), e.pass(&[127u8, 126u8]));
+    assert_eq!(vec!(132u8, 136u8), e.get(&[129u8, 130u8]));
+    assert_eq!(vec!(124u8, 120u8), e.get(&[127u8, 126u8]));
 }
 
 
