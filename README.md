@@ -1,5 +1,5 @@
 # mixer-rs
-![Build and tests](https://github.com/mana-z/mixer-rs/workflows/Rust/badge.svg)
+![Build and Test](https://github.com/mana-z/mixer-rs/workflows/Build%20and%20Test/badge.svg)
 
 A Rust implementation of usual sound patchwork needed for projects needing more than "play one
 sound". It should be generic enough for common use cases.
