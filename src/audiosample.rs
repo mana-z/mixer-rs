@@ -49,6 +49,7 @@ impl AudioSample for u8
         128u8
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

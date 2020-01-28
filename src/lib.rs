@@ -41,16 +41,6 @@ impl<T: AudioSample> SoundPassthrough<T> for EffectStack<T> {
                 }
                 self.effects[len - 1].pass(&self.buffer_flip, output)
             }
-        //    0 => Vec::from(input), // no effects - direct transfer
-        //    1 => self.effects[0].pass(input), // a single effect, pass and return
-        //    _ => { // multiple effects - traverse using a buffer pair
-        //        let mut buf = self.effects[0].pass(input);
-        //        for i in 1..len {
-        //            let mut buf2 = self.effects[i].pass(&buf);
-        //            std::mem::swap(&mut buf, &mut buf2);
-        //        }
-        //        buf
-        //    }
         }
 
     }
