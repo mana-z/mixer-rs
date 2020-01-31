@@ -51,11 +51,6 @@ impl<T: AudioSample> ImpulseEachFrame<T> {
     }
 }
 
-impl<T: AudioSample> SoundEntity for ImpulseEachFrame<T> {
-    // dummy as is irrelevant for tests
-    no_samplerate!();
-}
-
 impl<T: AudioSample> SoundSource<T> for ImpulseEachFrame<T> {
     fn get_out_channel_count(&self) -> usize {1}
 
@@ -79,10 +74,6 @@ impl<T: AudioSample> Buffer<T> {
     }
 }
 
-impl<T: AudioSample> SoundEntity for Buffer<T> {
-    // dummy as is irrelevant for tests
-    no_samplerate!();
-}
 
 impl<T: AudioSample> SoundSink<T> for Buffer<T> {
     fn put(&mut self, buf: &[T]) {

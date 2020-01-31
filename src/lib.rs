@@ -96,17 +96,6 @@ impl<T: AudioSample> Track<T> {
     }
 }
 
-impl<T: AudioSample> SoundEntity for Track<T>
-{
-    fn set_samplerate(&mut self, rate: u32) {
-        self.source.set_samplerate(rate);
-    }
-    fn samplerate(&self) -> Option<u32> {
-        self.source.samplerate()
-    }
-
-}
-
 impl<T: AudioSample> SoundSource<T> for Track<T>
 {
     fn get_out_channel_count(&self) -> usize {

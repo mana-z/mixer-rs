@@ -24,27 +24,11 @@
 use super::audiosample::AudioSample;
 use std::iter::repeat;
 
-/// A base interface for sinks/entities/passtroughs
-///
-/// This contains samplerate getters/setters, as many apps may want to test it always, even if it is
-/// not applicable for the entity itself
-pub trait SoundEntity {
-    fn set_samplerate(&mut self, rate: u32);
-    fn samplerate(&self) -> Option<u32>;
-}
-
-#[macro_export]
-macro_rules! no_samplerate {
-    () => {
-        fn set_samplerate(&mut self, _: u32) {}
-        fn samplerate(&self) -> Option<u32> { None }
-    }
-}
 
 /// A source of sound of X channels
 ///
 /// A trait which should be implemented by sources, e.g. input, synths, ...
-pub trait SoundSource<T: AudioSample> : SoundEntity {
+pub trait SoundSource<T: AudioSample> {
     /// Get number of emmiting channels channels
     ///
     /// How are the channels represented in input is user-defined
@@ -70,7 +54,7 @@ pub trait SoundSource<T: AudioSample> : SoundEntity {
 /// A sink of sound of X channels
 ///
 /// A trait which should be implemented by output endpoints, e.g. outputs, file writers...
-pub trait SoundSink<T: AudioSample> : SoundEntity {
+pub trait SoundSink<T: AudioSample> {
     /// Get number of consuming channels
     ///
     /// How should channels be represented in output is user-defined
@@ -105,7 +89,6 @@ mod tests {
     use super::*;
 
     struct Copier{}
-    impl SoundEntity for Copier { no_samplerate!(); }
 
     impl<T: AudioSample> SoundPassthrough<T> for Copier {
         fn pass(&mut self, input: &[T], output: &mut [T]) {
