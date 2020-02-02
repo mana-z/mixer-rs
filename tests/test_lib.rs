@@ -87,8 +87,8 @@ impl<T: AudioSample> SoundSink<T> for Buffer<T> {
 fn effect_stack() {
     let mut e = EffectStack::new();
     let newgain = || Box::new(Gain{g: 2f32});
-    e.effects.push(newgain());
-    e.effects.push(newgain());
+    e.effects.insert(0, newgain());
+    e.effects.insert(1, newgain());
     assert_eq!(vec!(132u8, 136u8), e.get(&[129u8, 130u8]));
     assert_eq!(vec!(124u8, 120u8), e.get(&[127u8, 126u8]));
 }
@@ -103,8 +103,8 @@ fn track() {
     {
         let ref mut e = t.effects.effects;
         let newgain = || Box::new(Gain{g: 2f32});
-        e.push(newgain());
-        e.push(newgain());
+        e.insert(0, newgain());
+        e.insert(1, newgain());
     }
     assert_eq!(vec!(132u8, 128u8, 128u8), t.get(3));
 }
@@ -116,8 +116,8 @@ fn mixer() {
     };
 
     let mut m = Mixer::new(Buffer::new());
-    m.tracks.push(impulse_track());
-    m.tracks.push(impulse_track());
+    m.tracks.insert(0, impulse_track());
+    m.tracks.insert(1, impulse_track());
     m.do_frame(3);
     assert_eq!(vec!(130u8, 128u8, 128u8), m.sink.b);
 }

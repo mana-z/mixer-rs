@@ -25,6 +25,7 @@ pub mod audiosample;
 pub mod io;
 use audiosample::AudioSample;
 use io::*;
+use std::collections::BTreeMap;
 
 /// Effects Stack
 ///
@@ -32,7 +33,7 @@ use io::*;
 /// pass through as well for easy traversing through the cascade
 #[derive(Default)]
 pub struct EffectStack<T: AudioSample> {
-    pub effects : Vec<Box<dyn SoundPassthrough<T>>>,
+    pub effects : BTreeMap<usize, Box<dyn SoundPassthrough<T>>>,
     buffer_flip: Vec<T>,
     buffer_flop: Vec<T>,
 }
@@ -40,7 +41,7 @@ pub struct EffectStack<T: AudioSample> {
 impl<T: AudioSample> EffectStack<T> {
     pub fn new() -> Self {
         EffectStack {
-            effects: Vec::new(),
+            effects: BTreeMap::new(),
             buffer_flip: Vec::new(),
             buffer_flop: Vec::new(),
         }
@@ -53,16 +54,17 @@ impl<T: AudioSample> SoundPassthrough<T> for EffectStack<T> {
         let len = self.effects.len();
         match len {
             0 => output.copy_from_slice(input),
-            1 => self.effects[0].pass(input, output),
+            1 => self.effects.iter_mut().next().unwrap().1.pass(input, output),
             _ => {
                 prepare_vec_for_slicing(&mut self.buffer_flip, input.len());
                 prepare_vec_for_slicing(&mut self.buffer_flop, input.len());
-                self.effects[0].pass(input, &mut self.buffer_flip);
-                for i in 1..(len - 1) {
-                    self.effects[i].pass(&self.buffer_flip, &mut self.buffer_flop);
+                let mut iter = self.effects.iter_mut();
+                iter.next().unwrap().1.pass(input, &mut self.buffer_flip);
+                for _ in 1..(len - 1) {
+                    iter.next().unwrap().1.pass(&self.buffer_flip, &mut self.buffer_flop);
                     std::mem::swap(&mut self.buffer_flip, &mut self.buffer_flop);
                 }
-                self.effects[len - 1].pass(&self.buffer_flip, output)
+                iter.next().unwrap().1.pass(&self.buffer_flip, output);
             }
         }
 
@@ -124,7 +126,7 @@ impl<T: AudioSample> SoundSource<T> for Track<T>
 /// A collection of tracks collected into a single sink
 pub struct Mixer<T: AudioSample, S: SoundSink<T>>
 {
-    pub tracks: Vec<Track<T>>,
+    pub tracks: BTreeMap<usize, Track<T>>,
     pub sink : S,
     out_buffer: Vec<T>,
     track_buffer: Vec<T>,
@@ -134,7 +136,7 @@ impl<T: AudioSample, S: SoundSink<T>> Mixer<T, S>
 {
     pub fn new(sink: S) -> Self {
         Self {
-            tracks: Vec::new(),
+            tracks: BTreeMap::new(),
             sink: sink,
             out_buffer: Vec::new(),
             track_buffer: Vec::new(),
@@ -147,9 +149,8 @@ impl<T: AudioSample, S: SoundSink<T>> Mixer<T, S>
         // we also need default values in output buffer as the results are accumulated
         prepare_vec_for_slicing(&mut self.track_buffer, size);
         prepare_vec_for_slicing(&mut self.out_buffer, size);
-        let tracks_count = self.tracks.len();
-        for i in 0..tracks_count {
-            self.tracks[i].load_into(&mut self.track_buffer);
+        for i in self.tracks.iter_mut() {
+            i.1.load_into(&mut self.track_buffer);
             for j in 0..size {
                 self.out_buffer[j] = self.out_buffer[j].audio_add(self.track_buffer[j]);
             }
