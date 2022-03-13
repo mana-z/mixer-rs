@@ -1,3 +1,8 @@
+# RIP notice
+
+- This never became more than a toy and I don't plan to work on it anymore, consider using
+  <https://github.com/RustAudio/dsp-chain> instead.
+
 # mixer-rs
 ![Build and Test](https://github.com/mana-z/mixer-rs/workflows/Build%20and%20Test/badge.svg)
 
